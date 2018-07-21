@@ -22,7 +22,7 @@ DOCKER_IMAGE ?= ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}:${DOCKER_TAG}
 # Go build flags
 GOOS := linux
 GOARCH := amd64
-GOLDFLAGS := -ldflags "-w -s -X ${PROJECT}/version.Release=${DOCKER_TAG} -X ${PROJECT}/version.Commit=${DOCKER_TAG} -X ${PROJECT}/version.BuildTime=${BUILD_TIME}"
+GOLDFLAGS := '-w -s -X ${PROJECT}/version.Release=${DOCKER_TAG} -X ${PROJECT}/version.Commit=${DOCKER_TAG} -X ${PROJECT}/version.BuildTime=${BUILD_TIME}'
 
 .PHONY: all
 all: fmt lint build
@@ -35,7 +35,7 @@ build: clean
 	@echo "-> $@"
 	go get -u github.com/prometheus/client_golang/prometheus
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
-		-a $(GOLDFLAGS) -installsuffix cgo -o ${APP} ./src
+		-a -ldflags $(GOLDFLAGS) -installsuffix cgo -o ${APP} ./src
 
 test:
 	go test -v -race ./...
@@ -52,7 +52,7 @@ lint:
 	@golint ./... | grep -v vendor | tee /dev/stderr
 
 container:
-	docker build -t ${DOCKER_IMAGE} -e "PORT=${PORT}" -e "GOOS=$(GOOS)" -e "GOARCH=$(GOARCH)" -e "GOLDFLAGS=$(GOLDFLAGS)" ./src
+	docker build -t ${DOCKER_IMAGE} --build-arg 'PORT=${PORT}' --build-arg GOLDFLAGS=$(GOLDFLAGS) ./src
 
 run: container
 	docker stop $(APP)-$(DOCKER_TAG) 2>/dev/null || true && docker rm --force $(APP)-${DOCKER_TAG} 2>/dev/null || true
