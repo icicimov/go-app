@@ -60,3 +60,5 @@ error_curl_total{vendor="yahoo"} 1
 ```
 
 amongst other default Go metrics collected by Prometheus.
+
+The included `Makefile` can be used to build a local binary or build, run and push a Docker container to dedicated remote repository.
