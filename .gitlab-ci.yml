@@ -1,0 +1,78 @@
+variables:
+  GIT_SSL_NO_VERIFY: "true"
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://localhost:2375
+  IMAGE_NAME: "$CI_REGISTRY/go-app"
+  BASE_IMAGE_NAME: "$IMAGE_NAME:latest"
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  DOCKER_IMAGE: "igoratencompass/docker-dind:18.03.0-ce"
+  KUBECTL_IMAGE: "igoratencompass/kubectl_deployer:latest"
+  KUBECONFIG: /etc/deploy/config
+
+#image: docker:latest
+image: $DOCKER_IMAGE
+services:
+  - docker:dind
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  cache:
+    key: "builder"
+    paths:
+      - ./.build
+  script:
+    - docker version
+    - >
+      if git diff HEAD~ --name-only|grep src; then
+        docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+        docker pull $BASE_IMAGE_NAME
+        docker build --cache-from $BASE_IMAGE_NAME --pull -t "${IMAGE_NAME}:${CI_COMMIT_REF_NAME}_${CI_COMMIT_SHA}" -t $BASE_IMAGE_NAME ./src/
+        docker push "$IMAGE_NAME:${CI_COMMIT_REF_NAME}_${CI_COMMIT_SHA}"
+        docker push $BASE_IMAGE_NAME
+      fi;
+  only:
+    - master
+
+# KUBE_CONFIG is project var containing base64 encoded kubeconfig file
+# with configuration of the K8S clusters we want to deploy to.
+.k8s-deploy: &k8s-deploy
+  image: $KUBECTL_IMAGE
+  services:
+    - docker:dind
+  before_script:
+    - mkdir -p /etc/deploy
+    - echo ${KUBE_CONFIG} | base64 -d > ${KUBECONFIG}
+  script:
+    - kubectl config use-context $KUBECONTEXT
+    - mkdir -p .generated
+    - cp templates/*.yml ./.generated/
+    - >
+      if git diff HEAD~ --name-only|grep src; then
+        sed -i "s/<VERSION>/${CI_COMMIT_REF_NAME}_${CI_COMMIT_SHA}/" ./.generated/go-app.yml
+      else
+        sed -i "s/<VERSION>/latest/" ./.generated/go-app.yml
+      fi;
+    - >
+      if git diff HEAD~ --name-only|grep templates; then
+        sed -i "s/<HASH>/${CI_COMMIT_SHA}/" ./.generated/go-app.yml
+      fi;
+    - cat ./.generated/go-app.yml
+    - kubectl apply -f ./.generated -n default
+
+# KUBECONTEXT is the context in the kubeconfig file for the 
+# cluster we are deploying to. The context references a user
+# with enough permissions to perform a deployment.
+kube-deploy-k8s:
+  stage: deploy
+  variables:
+    KUBECONTEXT: "deployer.k8s.mydomain.com"
+  <<: *k8s-deploy
+  environment:
+    name: k8s
+    url: https://go-app.k8s.mydomain.com
+  only:
+    - master

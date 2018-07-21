@@ -1,0 +1,89 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: go-app-deployment 
+  namespace: default
+  labels:
+    app: go-app
+spec:
+  revisionHistoryLimit: 3
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: go-app
+        tier: frontend
+      annotations:
+        deployHash: <HASH> 
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
+    spec:
+      # RBAC
+      serviceAccountName: go-app
+      # podAntiAffinity: best effort to spread pods across nodes in different AZs
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: go-app
+              topologyKey: failure-domain.beta.kubernetes.io/zone
+      containers:
+      - name: go-app
+        image: igoratencompass/go-app:<VERSION>
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+          name: go-app
+        resources:
+          limits:
+            cpu: "100m"
+            memory: 256Mi
+          requests:
+            cpu: "10m"
+            memory: 64Mi
+        readinessProbe:
+          successThreshold: 1
+          failureThreshold: 2
+          periodSeconds: 5
+          # Important so that the container doesn't get traffic too soon
+          initialDelaySeconds: 10
+          httpGet:
+            path: /readyz
+            port: 8081
+            scheme: HTTP
+        livenessProbe:
+          successThreshold: 1
+          failureThreshold: 2
+          periodSeconds: 5
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          httpGet:
+            path: /healthz
+            port: 8081
+            scheme: HTTP
+        # Needed for no-downtime deployments with IngressController
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "5"]
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+      terminationGracePeriodSeconds: 30
+      #imagePullSecrets:
+      #  - name: registry-secret 

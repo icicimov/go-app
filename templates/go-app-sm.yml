@@ -1,0 +1,20 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: go-app
+  name: go-app
+  namespace: monitoring
+spec:
+  endpoints:
+  - interval: 10s
+    path: /metrics
+    port: metrics
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      name: go-app-svc
+      tier: frontend

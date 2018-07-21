@@ -1,0 +1,45 @@
+---
+#apiVersion: autoscaling/v1
+# autoscaling/v2beta1 API has support for memory, network,
+# qps and other agregate and custom metrics
+# see https://github.com/kubernetes-incubator/metrics-server
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: go-app-autoscaler
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: go-app-deployment 
+  minReplicas: 3
+  maxReplicas: 6
+  #targetCPUUtilizationPercentage: 80
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 80
+  - type: Pods
+    pods:
+      metricName: memory
+      targetAverageValue: 80Mi
+  #
+  # number of connections example
+  #- type: Pods
+  #  pods:
+  #    metricName: current_connections
+  #    targetAverageValue: 10
+  #
+  # example of custom metric called processing_ratio
+  # which describes the work-queue-manager application;
+  # either the app exports this or we get it via a custom
+  # Prometheus setup that calculates it
+  #- type: Object
+  #  resource:
+  #    target:
+  #      kind: Deployment
+  #      name: work-queue-manager
+  #    metricName: processing_ratio
+  #    targetAverageValue: 1
