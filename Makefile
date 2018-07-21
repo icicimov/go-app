@@ -14,7 +14,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD)
 BUILD_TIME := $(shell date -u '+%F_%T')
 
 # Docker vars
-DOCKER_REGISTRY := hub.docker.com
+DOCKER_REGISTRY := docker.io
 DOCKER_REPOSITORY ?= igoratencompass/$(APP)
 DOCKER_TAG ?= ${GIT_COMMIT}
 DOCKER_IMAGE ?= ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}:${DOCKER_TAG}
