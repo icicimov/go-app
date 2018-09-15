@@ -29,7 +29,7 @@ $ go run server.go
 2018/06/14 10:13:40 Ready OK
 ```
 
-The basic function of the server is returning the host name (or container name/id in Kubernetes) it is running on, number of requests and time stamp: 
+The basic function of the server is returning the host name (or container name/id in Kubernetes) it is running on, number of requests and time stamp for the root `/` path: 
 
 ```bash
 igorc@igor-laptop:~$ curl http://localhost:8081/
