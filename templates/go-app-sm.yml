@@ -3,7 +3,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    app: go-app
+    k8s-app: go-app
   name: go-app
   namespace: monitoring
 spec:
