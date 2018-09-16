@@ -64,3 +64,13 @@ amongst other default Go metrics collected by Prometheus.
 ![Prometheus metrics](./go-app-metrics.png)
 
 The included `Makefile` can be used to build a local binary or build, run and push a Docker container to dedicated remote repository.
+
+## Kubernetes deployment
+
+To deploy to Kubernetes run:
+
+```bash
+$ kubectl apply -f templates/
+```
+
+The included `.gitlab-ci.yml` can be used to setup CI/CD pipeline in GitLab for Kubernetes. The `KUBE_CONFIG` is project var containing base64 encoded kubeconfig file with configuration of the K8S clusters we want to deploy to.
