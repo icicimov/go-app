@@ -16,6 +16,7 @@ services:
 
 stages:
   - build
+  - scan
   - deploy
 
 build:
@@ -34,6 +35,34 @@ build:
         docker push "$IMAGE_NAME:${CI_COMMIT_REF_NAME}_${CI_COMMIT_SHA}"
         docker push $BASE_IMAGE_NAME
       fi;
+  only:
+    - master
+
+.container_scanning: &container_scanning
+  allow_failure: true
+  services:
+    - docker:stable-dind
+  stage: scan
+  script:
+    - docker run -d --name db arminc/clair-db:latest
+    - docker run -p 6060:6060 --link db:postgres -d --name clair --restart on-failure arminc/clair-local-scan:v2.0.1
+    - apk add -U wget ca-certificates
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker pull $BASE_IMAGE_NAME 
+    - wget https://github.com/arminc/clair-scanner/releases/download/v8/clair-scanner_linux_amd64
+    - mv clair-scanner_linux_amd64 clair-scanner
+    - chmod +x clair-scanner
+    - touch clair-whitelist.yml
+    - retries=0
+    - echo "Waiting for clair daemon to start"
+    - while( ! wget -T 10 -q -O /dev/null http://localhost:6060/v1/namespaces ) ; do sleep 1 ; echo -n "." ; if [ $retries -eq 10 ] ; then echo " Timeout, aborting." ; exit 1 ; fi ; retries=$(($retries+1)) ; done
+    - ./clair-scanner -c http://localhost:6060 --ip $(hostname -i) -r gl-container-scanning-report.json -l clair.log -w clair-whitelist.yml $BASE_IMAGE_NAME || true
+  artifacts:
+    paths: [gl-container-scanning-report.json]
+
+container-scan:
+  stage: scan
+  <<: *container_scanning
   only:
     - master
 
