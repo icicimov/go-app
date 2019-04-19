@@ -24,6 +24,23 @@ GOOS := linux
 GOARCH := amd64
 GOLDFLAGS := '-w -s -X ${PROJECT}/version.Release=${DOCKER_TAG} -X ${PROJECT}/version.Commit=${DOCKER_TAG} -X ${PROJECT}/version.BuildTime=${BUILD_TIME}'
 
+# Help target
+help:
+	@echo ''
+	@echo 'Usage: make [TARGET]'
+	@echo 'Targets:'
+	@echo '  help     	display this message'
+	@echo '  build    	build golang binary'
+	@echo '  fmt      	run gofmt formating'
+	@echo '  test     	run go test'
+	@echo '  lint     	run go linter'
+	@echo '  all     	run go fmt lint build (default make)'
+	@echo '  clean    	remove the binary'
+	@echo '  container	build docker container'
+	@echo '  run      	run the docker container'
+	@echo '  push     	push to docker repository'
+	@echo ''
+
 .PHONY: all
 all: fmt lint build
 
@@ -49,7 +66,7 @@ fmt:
 lint:
 	@echo "-> $@"
 	@go get -u golang.org/x/lint/golint
-	@golint ./... | grep -v vendor | tee /dev/stderr
+	@golint ./... | tee /dev/stderr
 
 container:
 	docker build -t ${DOCKER_IMAGE} --build-arg 'PORT=${PORT}' --build-arg GOLDFLAGS=$(GOLDFLAGS) ./src
