@@ -69,7 +69,7 @@ lint:
 	@golint ./... | tee /dev/stderr
 
 container:
-	docker build -t ${DOCKER_IMAGE} --build-arg 'PORT=${PORT}' --build-arg GOLDFLAGS=$(GOLDFLAGS) ./src
+	docker build -t ${DOCKER_IMAGE} --build-arg 'PORT=${PORT}' --build-arg GOLDFLAGS=$(GOLDFLAGS) .
 
 run: container
 	docker stop $(APP)-$(DOCKER_TAG) 2>/dev/null || true && docker rm --force $(APP)-${DOCKER_TAG} 2>/dev/null || true
