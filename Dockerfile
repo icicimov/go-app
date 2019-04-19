@@ -3,7 +3,7 @@ FROM golang:alpine AS build-env
 RUN mkdir -p /go/src/app
 WORKDIR /go/src/app
 
-COPY ./src/*.go /go/src/app
+COPY ./src/*.go /go/src/app/
 
 ARG GOLDFLAGS="'-w -s'"
 ENV CGO_ENABLED=0
