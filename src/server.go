@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var counter int
@@ -132,7 +133,7 @@ func SetupCloseHandler() {
 func main() {
 	SetupCloseHandler()
 
-	http.Handle("/metrics", prometheus.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 	// hit this api several time with query string vendor=something
 	http.HandleFunc("/checkrest", checkRest)
 
