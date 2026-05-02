@@ -116,6 +116,30 @@ $ go run ./src --version
 release=v1.2.3 commit=abc1234 built=2026-05-02_10:00:00
 ```
 
+## Building
+
+Use `make` to produce the `go-app` binary (linux/amd64). The default target runs format check, lint, and build in sequence:
+
+```bash
+$ make
+```
+
+Or run each stage individually:
+
+```bash
+$ make fmt    # check formatting with gofmt
+$ make lint   # run golint against ./src/...
+$ make test   # run tests with -race flag
+$ make build  # compile and produce ./go-app binary
+```
+
+The build injects version metadata via `-ldflags`:
+
+```bash
+$ ./go-app --version
+release=v1.2.3 commit=abc1234 built=2026-05-02_10:00:00
+```
+
 ## Environment variables and flags
 
 | Variable / Flag | Default | Description |
