@@ -1,6 +1,6 @@
 module gitlab.encompasshost.com/encompass/go-app
 
-go 1.19
+go 1.22
 
 require github.com/prometheus/client_golang v1.15.0
 
