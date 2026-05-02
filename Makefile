@@ -52,8 +52,8 @@ clean:
 .PHONY: build
 build: clean
 	@echo "-> $@"
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
-		-ldflags $(GOLDFLAGS) -o ${APP} ./src
+	cd src && CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
+		-ldflags $(GOLDFLAGS) -o ../${APP} .
 
 .PHONY: test
 test:
