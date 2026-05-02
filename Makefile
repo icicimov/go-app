@@ -57,7 +57,7 @@ build: clean
 
 .PHONY: test
 test:
-	go test -v -race ./src/...
+	cd src && go test -v -race ./...
 
 .PHONY: fmt
 fmt:

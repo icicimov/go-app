@@ -27,8 +27,14 @@ import (
 //go:embed favicon.ico
 var faviconContent []byte
 
-// Build metadata injected via -ldflags.
-var Release, GitCommit, BuildTime string
+// Release is the release tag injected via -ldflags.
+var Release string
+
+// GitCommit is the git commit hash injected via -ldflags.
+var GitCommit string
+
+// BuildTime is the build timestamp injected via -ldflags.
+var BuildTime string
 
 var counter int
 var port = 8081
