@@ -97,6 +97,8 @@ http_response_time_seconds_sum 0.0031
 http_response_time_seconds_count 5
 ```
 
+![Prometheus metrics](./go-app-metrics.png)
+
 Metrics can optionally be served on a separate port via the `METRICS_PORT` env var or `-metrics_port` flag:
 
 ```bash
