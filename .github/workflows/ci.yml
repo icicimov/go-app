@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+    paths: ["src/**"]
+  pull_request:
+    branches: ["master"]
+    paths: ["src/**"]
+
+jobs:
+  build:
+    name: fmt / lint / test / build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Install golint
+        run: go install golang.org/x/lint/golint@latest
+
+      - name: fmt
+        run: make fmt
+
+      - name: lint
+        run: make lint
+
+      - name: test
+        run: make test
+
+      - name: build
+        run: make build
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-app-${{ github.sha }}
+          path: go-app
+          retention-days: 7
