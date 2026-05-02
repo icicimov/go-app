@@ -42,8 +42,8 @@ func Test_checkRest(t *testing.T) {
 		http.StatusBadGateway: true,
 	}
 	tests := []struct {
-		name   string
-		url    string
+		name string
+		url  string
 	}{
 		{"with named vendor", "/checkrest?vendor=acme"},
 		{"no vendor defaults to unknown", "/checkrest"},
