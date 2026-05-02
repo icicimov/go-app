@@ -1,18 +1,17 @@
 ---
 #apiVersion: autoscaling/v1
-# autoscaling/v2beta1 API has support for memory, network,
+# autoscaling/v2 API has support for memory, network,
 # qps and other agregate and custom metrics
-# see https://github.com/kubernetes-incubator/metrics-server
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: go-app-autoscaler
   namespace: default
 spec:
   scaleTargetRef:
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
-    name: go-app-deployment 
+    name: go-app-deployment
   minReplicas: 3
   maxReplicas: 6
   #targetCPUUtilizationPercentage: 80
@@ -20,11 +19,21 @@ spec:
   - type: Resource
     resource:
       name: cpu
-      targetAverageUtilization: 80
-  - type: Pods
-    pods:
-      metricName: memory
-      targetAverageValue: 80Mi
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # NOT WORKING, no idea why
+  #- type: Pods
+  #  pods:
+  #    metricName: memory
+  #   targetAverageValue: 80Mi
+
   #
   # number of connections example
   #- type: Pods

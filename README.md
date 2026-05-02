@@ -3,74 +3,119 @@
 The container listens on TCP port `8081` by default but it can be overwritten during runtime via environment variable and/or command line flag. For example:
 
 ```bash
-$ go run server.go
-2018/06/14 10:12:04 Starting the service listening on port :8081 ...
+$ go run ./src
+2026/05/02 10:12:04 Starting the service listening on port :8081 ...
 
-$ PORT=8084 go run server.go
-2018/06/14 10:12:43 Starting the service listening on port :8084 ...
+$ PORT=8084 go run ./src
+2026/05/02 10:12:43 Starting the service listening on port :8084 ...
 
-$ go run server.go -port=8090
-2018/06/14 10:13:09 Starting the service listening on port :8090 ...
+$ go run ./src -port=8090
+2026/05/02 10:13:09 Starting the service listening on port :8090 ...
 ```
 
-If both set the command line flag will have priority:
+If both are set, the command line flag takes priority:
 
 ```bash
-$ PORT=8084 go run server.go -port=8090
-2018/06/14 10:13:30 Starting the service listening on port :8090 ...
+$ PORT=8084 go run ./src -port=8090
+2026/05/02 10:13:30 Starting the service listening on port :8090 ...
 ```
 
-The container offers liveness `/healthz` and readiness `/readyz` end points too for Kubernetes probes. It also simulates 10 seconds load time to make the readiness check more realistic as shown below.
+## Endpoints
+
+### `/` — root
+
+Returns the hostname (or container name/ID in Kubernetes), request count, and timestamp:
 
 ```bash
-$ go run server.go
-2018/06/14 10:13:30 Starting the service listening on port :8081 ...
-2018/06/14 10:13:30 Ready NOK
-2018/06/14 10:13:40 Ready OK
-```
-
-The basic function of the server is returning the host name (or container name/id in Kubernetes) it is running on, number of requests and time stamp for the root `/` path: 
-
-```bash
-igorc@igor-laptop:~$ curl http://localhost:8081/
+$ curl http://localhost:8081/
 I am: igor-laptop
 Requests: 1
-Time: Thu, 14 Jun 2018 10:20:38 AEST
-igorc@igor-laptop:~$ curl http://localhost:8081/
+Time: Sat, 02 May 2026 10:20:38 AEST
+
+$ curl http://localhost:8081/
 I am: igor-laptop
 Requests: 2
-Time: Thu, 14 Jun 2018 10:20:40 AEST
-igorc@igor-laptop:~$ curl http://localhost:8081/
-I am: igor-laptop
-Requests: 3
-Time: Thu, 14 Jun 2018 10:20:43 AEST
+Time: Sat, 02 May 2026 10:20:40 AEST
+
+$ curl http://localhost:8081/                                                                                                   
+I am: igor-laptop                                                                                                                                  
+Requests: 3                                                                                                                                        
+Time: Sat, 02 May 2026 10:20:43 AEST
 ```
 
-It also has a `SIGINT` handle, as often happens in Kubernetes, so it can gracefully exit simulating a case when we need to clean up some temporary files or close database connections for example.
+### `/healthz` and `/readyz` — Kubernetes probes
 
-There is also a `/metrics` end point for Prometheus scraping and custom metrics example that simulates random failure when request with path `/checkrest?vendor=<random_name>` is made and increments a `error_curl_total` counter. So when hitting `https://localhost:8081/metrics` in the browser we should see the values for the `error_curl_total` custom metric:
+Liveness (`/healthz`) returns `200 OK` immediately. Readiness (`/readyz`) returns `503` for the first 10 seconds after startup to simulate a realistic load time, then switches to `200 OK`:
 
 ```bash
+$ go run ./src
+2026/05/02 10:13:30 Starting the service listening on port :8081 ...
+2026/05/02 10:13:30 Ready NOK
+2026/05/02 10:13:40 Ready OK
+```
+
+The delay can be overridden via the `READY_DELAY` env var or `-ready_delay` flag (value in seconds).
+
+### `/version` — build metadata
+
+Returns the release tag, git commit, and build timestamp as JSON:
+
+```bash
+$ curl http://localhost:8081/version
+{"release":"v1.2.3","git_commit":"abc1234","build_time":"2026-05-02_10:00:00"}
+```
+
+### `/checkrest?vendor=<name>` — vendor failure simulation
+
+Simulates a 50/50 random failure for the given vendor name and increments the `error_curl_total` Prometheus counter on failure. Repeated calls will produce different results:
+
+```bash
+$ curl http://localhost:8081/checkrest?vendor=google
+Vendor status: ok
+
+$ curl http://localhost:8081/checkrest?vendor=google
+Failed to fetch
+```
+
+### `/metrics` — Prometheus scrape endpoint
+
+Exposes default Go runtime metrics plus two custom metrics:
+
+- `error_curl_total` — counter incremented on each `/checkrest` failure, labelled by vendor
+- `http_response_time_seconds` — summary of request response times
+
+```
 # HELP error_curl_total Total curl request failed
 # TYPE error_curl_total counter
 error_curl_total{vendor="encompass"} 2
 error_curl_total{vendor="google"} 2
 error_curl_total{vendor="yahoo"} 1
-...
+
+# HELP http_response_time_seconds Request response times
+# TYPE http_response_time_seconds summary
+http_response_time_seconds_sum 0.0031
+http_response_time_seconds_count 5
 ```
 
-amongst other default Go metrics collected by Prometheus.
-
-![Prometheus metrics](./go-app-metrics.png)
-
-The included `Makefile` can be used to build a local binary or build, run and push a Docker container to dedicated remote repository.
-
-## Kubernetes deployment
-
-To deploy to Kubernetes run:
+Metrics can optionally be served on a separate port via the `METRICS_PORT` env var or `-metrics_port` flag:
 
 ```bash
-$ kubectl apply -f templates/
+$ METRICS_PORT=9090 go run ./src
+2026/05/02 10:13:30 Starting prometheus service listening on port :9090 ...
+2026/05/02 10:13:30 Starting the service listening on port :8081 ...
 ```
 
-The included `.gitlab-ci.yml` can be used to setup CI/CD pipeline in GitLab for Kubernetes. The `KUBE_CONFIG` is project var containing base64 encoded kubeconfig file with configuration of the K8S clusters we want to deploy to.
+## Version flag
+
+```bash
+$ go run ./src --version
+release=v1.2.3 commit=abc1234 built=2026-05-02_10:00:00
+```
+
+## Environment variables and flags
+
+| Variable / Flag | Default | Description |
+|----------------|---------|-------------|
+| `PORT` / `-port` | `8081` | Main HTTP port |
+| `METRICS_PORT` / `-metrics_port` | (same as PORT) | Separate Prometheus metrics port |
+| `READY_DELAY` / `-ready_delay` | `10` | Seconds before readiness probe returns OK |

@@ -7,25 +7,17 @@ metadata:
   labels:
     name: go-app-svc
     app: go-app
-    tier: frontend
     dns: route53
   annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "10254"
-    prometheus.io/path: "/metrics"
     # For type=LoadBalancer or type=NodePort only
-    #dns.alpha.kubernetes.io/external: go-app.k8s.mydomain.com
+    #dns.alpha.kubernetes.io/external: go-app.k8s-uk.encompasshost.com
 spec:
   selector:
     app: go-app
   sessionAffinity: None
   type: ClusterIP 
   ports:
-  - name: http
+  - name: go-app
     port: 80
     protocol: TCP
-    targetPort: go-app
-  - name: metrics
-    port: 10254
-    protocol: TCP
-    targetPort: go-app
+    targetPort: 8081

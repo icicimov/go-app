@@ -8,21 +8,22 @@ SHELL := bash
 
 APP?=go-app
 PORT?=8081
-PROJECT?=github.com/icicimov/$(APP)
+PROJECT?=gitlab.encompasshost.com/encompass/$(APP)
 
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
+GIT_TAG    := $(shell git describe --tags --always 2>/dev/null || echo "v0.0.0")
 BUILD_TIME := $(shell date -u '+%F_%T')
 
 # Docker vars
-DOCKER_REGISTRY := docker.io
-DOCKER_REPOSITORY ?= igoratencompass/$(APP)
+DOCKER_REGISTRY := registry.encompasshost.com
+DOCKER_REPOSITORY ?= encompass/go-app
 DOCKER_TAG ?= ${GIT_COMMIT}
 DOCKER_IMAGE ?= ${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}:${DOCKER_TAG}
 
 # Go build flags
 GOOS := linux
 GOARCH := amd64
-GOLDFLAGS := '-w -s -X ${PROJECT}/version.Release=${DOCKER_TAG} -X ${PROJECT}/version.Commit=${DOCKER_TAG} -X ${PROJECT}/version.BuildTime=${BUILD_TIME}'
+GOLDFLAGS := '-w -s -X main.Release="${GIT_TAG}" -X main.GitCommit="${GIT_COMMIT}" -X main.BuildTime="${BUILD_TIME}"'
 
 # Help target
 help:
@@ -31,11 +32,11 @@ help:
 	@echo 'Targets:'
 	@echo '  help     	display this message'
 	@echo '  build    	build golang binary'
-	@echo '  fmt      	run gofmt formating'
+	@echo '  fmt      	gofmt vendor'
 	@echo '  test     	run go test'
 	@echo '  lint     	run go linter'
 	@echo '  all     	run go fmt lint build (default make)'
-	@echo '  clean    	remove the binary'
+	@echo '  clean    	remove the sources'
 	@echo '  container	build docker container'
 	@echo '  run      	run the docker container'
 	@echo '  push     	push to docker repository'
@@ -48,32 +49,44 @@ all: fmt lint build
 clean:
 	rm -f ${APP}
 
+.PHONY: build
 build: clean
 	@echo "-> $@"
-	go get -u github.com/prometheus/client_golang/prometheus
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
-		-a -ldflags $(GOLDFLAGS) -installsuffix cgo -o ${APP} ./src
+		-ldflags $(GOLDFLAGS) -o ${APP} ./src
 
+.PHONY: test
 test:
-	go test -v -race ./...
+	go test -v -race ./src/...
 
 .PHONY: fmt
-fmt: 
+fmt:
 	@echo "-> $@"
-	@gofmt -s -l ./src | grep -v vendor | tee /dev/stderr
+	@if [ -n "$$(gofmt -s -l ./src | grep -v vendor)" ]; then \
+		gofmt -s -l ./src | grep -v vendor; \
+		exit 1; \
+	fi
 
 .PHONY: lint
 lint:
 	@echo "-> $@"
-	@go get -u golang.org/x/lint/golint
-	@golint ./... | tee /dev/stderr
+	@echo go get -u golang.org/x/lint/golint
+	@golint ./src/... | tee /dev/stderr
 
+.PHONY: container
 container:
-	docker build -t ${DOCKER_IMAGE} --build-arg 'PORT=${PORT}' --build-arg GOLDFLAGS=$(GOLDFLAGS) .
+	docker build -t ${DOCKER_IMAGE} \
+		--build-arg "GIT_TAG=$(GIT_TAG)" \
+		--build-arg "GIT_COMMIT=$(GIT_COMMIT)" \
+		--build-arg "BUILD_TIME=$(BUILD_TIME)" \
+		./src
 
+.PHONY: run
 run: container
 	docker stop $(APP)-$(DOCKER_TAG) 2>/dev/null || true && docker rm --force $(APP)-${DOCKER_TAG} 2>/dev/null || true
 	docker run --name $(APP)-$(DOCKER_TAG) -p ${PORT}:${PORT} --rm -e "PORT=${PORT}" ${DOCKER_IMAGE}
 
+.PHONY: push
 push: container
 	docker push ${DOCKER_IMAGE}
+

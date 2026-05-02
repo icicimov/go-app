@@ -1,30 +1,35 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: go-app-external 
+  name: go-app-external
   namespace: default
   annotations:
-    kubernetes.io/ingress.class: 'nginx-ingress-external'
     nginx.ingress.kubernetes.io/ssl-redirect: 'true'
     nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
     #nginx.ingress.kubernetes.io/enable-cors: 'true'
     nginx.ingress.kubernetes.io/limit-connections: '25'
     nginx.ingress.kubernetes.io/limit-rps: '5'
     nginx.ingress.kubernetes.io/proxy-body-size: '8m'
+    #nginx.ingress.kubernetes.io/configuration-snippet: |
+    #  opentracing_tag http_app go-app;
     # LE setup for cert-manager
     kubernetes.io/tls-acme: "true"
-    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
+  ingressClassName: nginx-ingress-external
   rules:
-  - host: go-app.k8s.mydomain.com
+  - host: go-app.k8s-uk.encompasshost.com
     http:
       paths:
-      - backend:
-          serviceName: go-app-svc
-          servicePort: 80
-        path: /
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: go-app-svc
+            port:
+              number: 80
   tls:
   - hosts:
-    - go-app.k8s.mydomain.com
+    - go-app.k8s-uk.encompasshost.com
     secretName: go-app-tls-secret

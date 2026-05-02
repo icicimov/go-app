@@ -8,7 +8,7 @@ metadata:
     app: go-app 
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: go-app
@@ -35,13 +35,13 @@ rules:
       - secrets
     resourceNames:
       - "go-app-secret"
+      - "encompass-gitlab-registry"
       - "go-app-tls-secret"
-      - "registry-secret"
     verbs:
       - get
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: go-app

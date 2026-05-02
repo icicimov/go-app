@@ -3,18 +3,18 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   labels:
-    k8s-app: go-app
+    app: go-app
   name: go-app
   namespace: monitoring
 spec:
   endpoints:
   - interval: 10s
     path: /metrics
-    port: metrics
+    port: go-app
   namespaceSelector:
     matchNames:
     - default
   selector:
     matchLabels:
       name: go-app-svc
-      tier: frontend
+      app: go-app
