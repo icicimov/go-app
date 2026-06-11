@@ -62,8 +62,8 @@ test:
 .PHONY: fmt
 fmt:
 	@echo "-> $@"
-	@if [ -n "$$(gofmt -s -l ./src | grep -v vendor)" ]; then \
-		gofmt -s -l ./src | grep -v vendor; \
+	@if [ -n "$$(gofmt -s -l src/ | grep -v vendor)" ]; then \
+		gofmt -s -l src/ | grep -v vendor; \
 		exit 1; \
 	fi
 
@@ -71,7 +71,7 @@ fmt:
 lint:
 	@echo "-> $@"
 	@echo go get -u golang.org/x/lint/golint
-	@golint ./src/... | tee /dev/stderr
+	cd src && golint ./... | tee /dev/stderr
 
 .PHONY: container
 container:
